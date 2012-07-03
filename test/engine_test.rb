@@ -17,6 +17,21 @@ context "Rabl::Engine" do
     asserts_topic.assigns :_view_path
   end
 
+  context "#node" do
+    setup do
+      template = RablTemplate.new(nil, 1, :format => :xml) { %{
+        code(:foo, :attributes=>true) { {'bar'=>'baz'} }
+      } }
+      builder = Object.new
+      mock(builder).tag!(:foo, {"bar"=>"baz"}){'xml'}
+      any_instance_of(Hash) do |h|
+        stub(h).to_xml.yields(builder) {'mock_xml'}
+      end
+      template.render(Object.new)
+    end
+    asserts_topic.equals 'mock_xml'
+  end
+
   context "#cache" do
     context "with cache" do
       setup do
@@ -198,12 +213,19 @@ context "Rabl::Engine" do
     end
 
     context "#code" do
-      asserts "that it can create an arbitraty code node" do
+      asserts "that it can create an arbitrary code node" do
         template = rabl %{
           code(:foo) { 'bar' }
         }
         template.render(Object.new).split('').sort
       end.equals "{\"foo\":\"bar\"}".split('').sort
+      
+      asserts "that attributes doesn't affect json codes" do
+        template = rabl %{
+          code(:foo, :attributes=>true) { {'bar'=>'baz'} }
+        }
+        template.render(Object.new).split('').sort
+      end.equals "{\"foo\":{\"bar\":\"baz\"}}".split('').sort
 
       asserts "that it can be passed conditionals" do
         template = rabl %{

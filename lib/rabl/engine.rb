@@ -88,7 +88,14 @@ module Rabl
       include_child_root = include_root && Rabl.configuration.include_child_root
       options = options.reverse_merge(:root => include_root, :child_root => include_child_root)
       xml_options = Rabl.configuration.default_xml_options.merge(:root => data_name(@_data))
-      to_hash(options).to_xml(xml_options)
+      hsh = to_hash(options)
+      attr_nodes = @_options[:node].select{|node| node[:options][:attributes]}
+      attr_nodes.each{|node| hsh.delete(node[:name])}
+      hsh.to_xml(xml_options) do |builder|
+        attr_nodes.each do |node|
+          builder.tag!(node[:name], node[:block].call(data_object(@_data)))
+        end
+      end
     end
 
     # Returns a bson representation of the data object
